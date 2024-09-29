@@ -152,5 +152,3 @@ class SnakeGameAI:
             y -= BLOCK_SIZE
 
         self.head = Point(x, y)
-
-    pygame.quit()
