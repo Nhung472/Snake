@@ -1,2 +1,4 @@
 # Snake
-Python + PyTorch + Pygame Reinforcement Learning – Train an AI to Play Snake
+Train an AI to Play Snake using Python + PyTorch + Pygame Reinforcement Learning 
+
+##
