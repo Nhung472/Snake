@@ -3,17 +3,29 @@ from IPython import display
 
 plt.ion()
 
-def plot(scores, mean_scores):
+def plot(scores, mean_scores, rewards):
     display.clear_output(wait=True)
     display.display(plt.gcf())
     plt.clf()
     plt.title('Training...')
     plt.xlabel('Number of Games')
-    plt.ylabel('Score')
-    plt.plot(scores)
-    plt.plot(mean_scores)
+    plt.ylabel('Score and Reward')
+    
+    # Score
+    plt.plot(scores, label='Score')
+    plt.plot(mean_scores, label='Mean Score')
+
+    # Reward 
+    plt.plot(rewards, label='Reward', linestyle='--')
+
     plt.ylim(ymin=0)
+    
+    # Hiển thị giá trị cuối cùng của score, mean score và reward
     plt.text(len(scores)-1, scores[-1], str(scores[-1]))
     plt.text(len(mean_scores)-1, mean_scores[-1], str(mean_scores[-1]))
+    plt.text(len(rewards)-1, rewards[-1], str(rewards[-1]))
+
+    plt.legend(loc='upper left')
     plt.show(block=False)
     plt.pause(.1)
+

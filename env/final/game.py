@@ -63,15 +63,15 @@ class SnakeGameAI:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
-
+        
         # 2. move
-        self._move(action)  # update the head
+        self._move(action) # update the head
         self.snake.insert(0, self.head)
         
         # 3. check if game over
         reward = 0
         game_over = False
-        if self.is_collision() or self.frame_iteration > 100 * len(self.snake):
+        if self.is_collision() or self.frame_iteration > 100*len(self.snake):
             game_over = True
             reward = -10
             return reward, game_over, self.score
@@ -83,21 +83,14 @@ class SnakeGameAI:
             self._place_food()
         else:
             self.snake.pop()
-
+        
         # 5. update ui and clock
         self._update_ui()
         self.clock.tick(SPEED)
-        
         # 6. return game over and score
         return reward, game_over, self.score
 
-
-    def _distance_to_food(self, head, food):
-        #cal distance to food
-        return np.sqrt((head.x - food.x) ** 2 + (head.y - food.y) ** 2)
-
-
-    def is_collision(self, pt=None): #check neu co va cham hay khong
+    def is_collision(self, pt=None):
         if pt is None:
             pt = self.head
         # hits boundary
