@@ -39,10 +39,15 @@ Have 11 values:
 
 when:
     - NewQ(s,a): new Q value for that state and that action
+
     - Q(s,a): current Q value
+
     - a: learning rate
+
     - R(s,a): reward for taking that action at that state
+
     - y: discount rate
+    
     - maxQ'(s',a'): max expected future reward given the new s' and all possible actions at that new state
 
 ## Q Update rule simplified
