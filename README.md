@@ -35,16 +35,15 @@ Have 11 values:
     4. Update Q value
 
 ## Bellman Equation
-            NewQ(s, a) =Q(s, a) +a[R(s,a)+ymaxQ' (s',a' )-Q(s,a)]
+            NewQ(s, a) = Q(s, a) +a[R(s,a) + ymaxQ' (s',a' )-Q(s,a)]
 
 when:
-        NewQ(s,a): new Q value for that state and that action
-        Q(s,a): current Q value
-        a: learning rate
-        R(s,a): reward for taking that action at that state
-        y: discount rate
-        maxQ'(s',a'): max expected future reward given the new s' and all possible actions at that
-        new state
+    - NewQ(s,a): new Q value for that state and that action
+    - Q(s,a): current Q value
+    - a: learning rate
+    - R(s,a): reward for taking that action at that state
+    - y: discount rate
+    - maxQ'(s',a'): max expected future reward given the new s' and all possible actions at that new state
 
 ## Q Update rule simplified
         Q = model.predict(state_0)
