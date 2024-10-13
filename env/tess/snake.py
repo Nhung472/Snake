@@ -1,9 +1,6 @@
 import pygame
-import time
 import random
-import math
 from util import State, Feature
-import numpy as np
 
 CONTROLS = False
 
@@ -16,50 +13,43 @@ class Snake:
         self.x = 300
         self.y = 300
         self.snake_length = 1
-        self.foodx = round(random.randrange(0, self.width-self.size) / self.size) * self.size # 30 is snake block
-        self.foody = round(random.randrange(0, self.width-self.size) / self.size) * self.size
+        self.foodx = self._generate_food_position()[0]
+        self.foody = self._generate_food_position()[1]
         self.snake_list = []
         self.delta_x = 0
         self.delta_y = 0
 
+    def _generate_food_position(self):
+        # Generate food position ensuring it does not spawn on the snake
+        foodx = round(random.randrange(0, self.width - self.size) / self.size) * self.size
+        foody = round(random.randrange(0, self.height - self.size) / self.size) * self.size
+        return foodx, foody
+
     def collide(self, head):
-        #add tail check later
+        # Check collision with snake body
         if head in self.snake_list[:-1]:
             return True
-
-        if self.x < 0 or self.x > self.width-self.size or self.y<0 or self.y > self.height-self.size:
-            # print("crashing")
+        # Check wall collision
+        if self.x < 0 or self.x >= self.width - self.size or self.y < 0 or self.y >= self.height - self.size:
             return True 
-        
         return False
 
-    def new_location(self):
-        # call rl methode here
-        return -1, 0
-    
-    def collide(self, head):
-        #add tail check later
-        if head in self.snake_list[:-1]:
-            return True
-
-        if self.x < 0 or self.x > self.width-self.size or self.y<0 or self.y > self.height-self.size:
-            # print("crashing")
-            return True 
-        
-        return False
-    
     def choices(self):
         choices_list = []
-        moves = [[0,-self.size], [0,self.size], [-self.size,0], [self.size,0]] #up, down left, right
+        moves = [[0, -self.size], [0, self.size], [-self.size, 0], [self.size, 0]]  # Up, down, left, right
 
         for move in moves:
-            new_state = State(move[0], move[1], 0)
-            temp_x = self.x + new_state.delta_x
-            temp_y = self.y + new_state.delta_y
-            if temp_x == self.foodx and temp_y == self.foody:
+            new_state = State(self.x + move[0], self.y + move[1], 0)  # State should reflect new position
+            # Check for food
+            if new_state.x == self.foodx and new_state.y == self.foody:
                 new_state.reward = 1
-            if temp_x < 0 or temp_x > self.width-self.size or temp_y<0 or temp_y > self.height-self.size or [temp_x, temp_y] in self.snake_list[:-1]:
+            # Check for collisions
+            elif (new_state.x < 0 or new_state.x >= self.width - self.size or 
+                  new_state.y < 0 or new_state.y >= self.height - self.size or 
+                  [new_state.x, new_state.y] in self.snake_list[:-1]):
                 new_state.reward = -1
+            else:
+                new_state.reward = 0  # Neutral reward
             choices_list.append(new_state)
 
         random.shuffle(choices_list)
@@ -67,19 +57,20 @@ class Snake:
 
     def ai_decide(self):
         choices_list = self.choices()
-        max = -2
+        max_reward = -2
         chosen = None
         for choice in choices_list:
-            if choice.reward > max:
+            if choice.reward > max_reward:
                 chosen = choice
-                max = choice.reward
+                max_reward = choice.reward
         return chosen
 
     def play(self):
         clock = pygame.time.Clock()
-        blue=(0,0,255)
-        red=(255,0,0)
-        game_over=False
+        blue = (0, 0, 255)
+        red = (255, 0, 0)
+        game_over = False
+
         while not game_over:
             if CONTROLS:
                 for event in pygame.event.get():
@@ -88,144 +79,77 @@ class Snake:
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_LEFT:
                             self.delta_x = -self.size
-                            self.delta_y  = 0
+                            self.delta_y = 0
                         elif event.key == pygame.K_RIGHT:
                             self.delta_x = self.size
-                            self.delta_y  = 0
+                            self.delta_y = 0
                         elif event.key == pygame.K_UP:
-                            self.delta_y  = -self.size
+                            self.delta_y = -self.size
                             self.delta_x = 0
                         elif event.key == pygame.K_DOWN:
-                            self.delta_y  = self.size
+                            self.delta_y = self.size
                             self.delta_x = 0
-            else: #algorithm determines
+            else:  # Algorithm determines
                 chosen = self.ai_decide()
                 self.delta_x, self.delta_y = chosen.delta_x, chosen.delta_y
+
             self.x += self.delta_x
             self.y += self.delta_y    
 
-            snake_Head = []
-            snake_Head.append(self.x)
-            snake_Head.append(self.y)
-            self.snake_list.append(snake_Head)
+            snake_head = [self.x, self.y]
+            self.snake_list.append(snake_head)
             if len(self.snake_list) > self.snake_length:
                 del self.snake_list[0]
             
-            if self.collide(snake_Head):
+            if self.collide(snake_head):
                 break
 
             self.dis.fill("black")
-            for x,y in self.snake_list:
-                pygame.draw.rect(self.dis,blue,[x,y,self.size,self.size])
-            pygame.draw.rect(self.dis,red,[self.foodx,self.foody,self.size,self.size])
+            for x, y in self.snake_list:
+                pygame.draw.rect(self.dis, blue, [x, y, self.size, self.size])
+            pygame.draw.rect(self.dis, red, [self.foodx, self.foody, self.size, self.size])
             pygame.display.update()
+
+            # Check if the snake has eaten the food
             if self.x == self.foodx and self.y == self.foody:
-                self.snake_length +=1
-                self.foodx = round(random.randrange(0, self.width-self.size) / self.size) * self.size
-                self.foody = round(random.randrange(0, self.width-self.size) / self.size)
-                clock.tick(600)
+                self.snake_length += 1
+                self.foodx, self.foody = self._generate_food_position()
+                # Ensure food doesn't spawn on the snake
+                while [self.foodx, self.foody] in self.snake_list:
+                    self.foodx, self.foody = self._generate_food_position()
+            
+            clock.tick(15)  # Adjusted game speed for better playability
 
         return self.snake_length - 1
 
-def featureExtractor(self, state: State, action):
-    features = []
-    temp_x = self.x + state.delta_x
-    temp_y = self.y + state.delta_y
+    def feature_extractor(self, action):
+        features = []
+        temp_x = self.x + self.delta_x
+        temp_y = self.y + self.delta_y
 
-    #distance to left wall, how big the tail is, action maybe you need location?
-    features.append(Feature(featureKey=('leftWall', temp_x, action), featureValue=1))
+        # Distance to left wall
+        features.append(Feature(featureKey=('leftWall', temp_x, action), featureValue=1))
+        # Distance to right wall
+        features.append(Feature(featureKey=('rightWall', self.width - self.size - temp_x, action), featureValue=1))
+        # Distance to top wall
+        features.append(Feature(featureKey=('topWall', temp_y, action), featureValue=1))
+        # Distance to bottom wall
+        features.append(Feature(featureKey=('bottomWall', self.height - self.size - temp_y, action), featureValue=1))
+        # Distance to fruit
+        features.append(Feature(featureKey=('fruitDistance', abs(temp_y - self.foody) + abs(temp_x - self.foodx), action), featureValue=1))
 
-    #distance to right wall, how big the tail is, action
-    features.append(Feature(featureKey=('rightWall', self.width-self.size-temp_x, action), featureValue=1))
-
-    #distance to top wall, how big the tail is, action
-    features.append(Feature(featureKey=('topWall', temp_y, action), featureValue=1))
-
-    #distance to bottom wall, how big the tail is, action
-    features.append(Feature(featureKey=('bottomWall', self.height-self.size-temp_y, action), featureValue=1))
-
-    #maybe how close the head is to the body?
-
-    #distance to fruit, action
-    features.append(Feature(featureKey=('fruit', abs(temp_y-self.foody) + abs(temp_x-self.foodx), action), featureValue=1))
-
-    return features
-
-class QLearningAlgorithm:
-    def __init__(self, actions, discount, learning_rate, epsilon):
-        self.actions = actions
-        self.discount = discount
-        self.learning_rate = learning_rate
-        self.epsilon = epsilon
-        self.q_values = {}
-        self.weights = {}
-
-    def getAction(self, state, trial):
-        if random.random() < self.epsilon:
-            return random.choice(self.actions)
-        else:
-            q_values = [self.getQValue(state, action) for action in self.actions]
-            return self.actions[np.argmax(q_values)]
-
-    def getQValue(self, state, action):
-        features = state.snake.featureExtractor(state, action)
-        q_value = 0
-        for feature in features:
-            q_value += self.weights.get(feature.featureKey, 0) * feature.featureValue
-        return q_value
-
-    def incorporateFeedback(self, state, action, reward, new_state):
-        features = state.snake.featureExtractor(state, action)
-        q_value = self.getQValue(state, action)
-        new_q_values = [self.getQValue(new_state, new_action) for new_action in self.actions]
-        new_q_value = max(new_q_values)
-        for feature in features:
-            self.weights[feature.featureKey] = self.weights.get(feature.featureKey, 0) + self.learning_rate * (reward + self.discount * new_q_value - q_value) * feature.featureValue
+        return features
 
 def learn(dis, height, width):
     snake = Snake(dis, height, width)
-    actions = ["up","down","left","right"]
-    discount = 0.9  # discount factor
-    learning_rate = 0.1
-    epsilon = 0.1
-    qlearn = QLearningAlgorithm(actions, discount, learning_rate, epsilon)
-    score = 0
-    for _ in range(1000):
-        state = State(0, 0, 0, snake.x, snake.y, snake.snake_list)
-        totalDiscount = 1  # future
-        trial_reward = 0
-        skip = False
-        for _ in range(1000):
-            action = qlearn.getAction(state, _+1)
-            new_state, reward = snake.choices()
-            new_state.snake = snake
-            if reward < -1000:
-                qlearn.incorporateFeedback(state, action, reward, new_state)
-                break
-            qlearn.incorporateFeedback(state, action, reward, new_state)
-            trial_reward += totalDiscount * reward
-            totalDiscount *= discount
-            state = new_state
-            snake.x += state.delta_x
-            snake.y += state.delta_y
-            snake.snake_list.append([snake.x, snake.y])
-            if len(snake.snake_list) > snake.snake_length:
-                del snake.snake_list[0]
-            if snake.collide([snake.x, snake.y]):
-                break
-            snake.dis.fill("black")
-            for x,y in snake.snake_list:
-                pygame.draw.rect(snake.dis, (0,0,255), [x,y,snake.size,snake.size])
-            pygame.draw.rect(snake.dis, (255,0,0), [snake.foodx,snake.foody,snake.size,snake.size])
-            pygame.display.update()
-        score += trial_reward
+    score = snake.play()
     return score
 
 def start_display():
     height = 600
     width = 600
     pygame.init()
-    dis=pygame.display.set_mode((height,width))
+    dis = pygame.display.set_mode((height, width))
     pygame.display.set_caption('Reinforcement Learning Snake')
     
     print(learn(dis, height, width))
