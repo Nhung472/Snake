@@ -27,7 +27,6 @@ class QLearningAlgorithm():
         self.width = width
         self.size = size
 
-    # Return the Q function associated with the weights and features
     def getQ(self, state: State, action: Any) -> float:
         score = 0
         featureValues, debug_values = self.featureExtractor(state, action, self.height, self.width, self.size)
@@ -35,9 +34,6 @@ class QLearningAlgorithm():
             score += self.weights[f] * v
         return score, debug_values
 
-    # This algorithm will produce an action given a state.
-    # Here we use the epsilon-greedy algorithm: with probability
-    # |explorationProb|, take a random action.
     def getAction(self, state: State, debug, iterations) -> Any:
         self.numIters += 1
         moves = {"up":[0,-self.size], "down":[0,self.size], "left":[-self.size,0], "right":[self.size,0]}
@@ -46,8 +42,6 @@ class QLearningAlgorithm():
         explorationProb = self.explorationProb / iterations #decreasing randomness as we go
         for key in moves:
             delta_vals = moves[key]
-            # if state.snake_list:
-                # print([state.x + delta_vals[0],state.y + delta_vals[1]], state.snake_list)
             if len(state.snake_list) > 1 and [state.x + delta_vals[0],state.y + delta_vals[1]] == state.snake_list[-2]:
                 continue
             actions.append(key)
@@ -69,16 +63,7 @@ class QLearningAlgorithm():
     def getStepSize(self) -> float:
         return 1.0 / math.sqrt(self.numIters)
 
-    # We will call this function with (s, a, r, s'), which you should use to update |weights|.
-    # Note that if s is a terminal state, then s' will be None.
-    # You should update the weights using self.getStepSize(); use
-    # self.getQ() to compute the current estimate of the parameters.
     def incorporateFeedback(self, state: State, action: Any, reward: int, newState: State) -> None:
-
-        # if newState == None:
-        #     # s is terminal
-        #     return
-
         featureValues, debug_values = self.featureExtractor(state, action, self.height, self.width, self.size)
         max_action_value = float('-inf')
         for new_action in self.actions:
@@ -98,10 +83,7 @@ def featureExtractor(state: State, action, height, width, size):
     state_features = False
     direction_and_danger = True
     wall_tracker = True
-    '''
-    Some ideas
-    if the snake is in the wall, put it at 0? Since it doesnt want to crash
-    '''
+
     bit = None
     debug_bit = []
     if state_features:
@@ -223,5 +205,4 @@ def featureExtractor(state: State, action, height, width, size):
         debug_bit.append(bit)
     
     # if wall_tracker:
-
     return features, debug_bit

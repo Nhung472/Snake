@@ -6,7 +6,6 @@ from util import State
 
 CONTROLS = False
 
-
 class Snake:
     def __init__(self, dis, height, width, size, debug_mode) -> None:
         self.size = size
@@ -24,7 +23,6 @@ class Snake:
         state = State(300, 300, 1, foodx, foody, [])
         return state
 
-    
     def collide(self, head, state):
         #add tail check later
         if head in state.snake_list[:-1]:
@@ -50,7 +48,6 @@ class Snake:
         
         return -1
 
-    
     def choices(self, state, action):
         moves = {"up":[0,-self.size], "down":[0,self.size], "left":[-self.size,0], "right":[self.size,0]} #up, down left, right
         if action not in moves:
@@ -74,11 +71,7 @@ class Snake:
         if temp_x < 0 or temp_x > self.width-self.size or temp_y<0 or temp_y > self.height-self.size or [temp_x, temp_y] in new_state.snake_list[:-1]:
             reward = -1000
 
-
-
         return new_state, reward              
-    
-
 
     def draw(self, state, trial):
 
@@ -101,5 +94,3 @@ class Snake:
             pygame.draw.rect(self.dis,blue,[x,y,self.size,self.size])
         pygame.draw.rect(self.dis,red,[state.foodx,state.foody,self.size,self.size])
         pygame.display.update()
-    
-        

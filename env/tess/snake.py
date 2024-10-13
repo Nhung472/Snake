@@ -3,6 +3,7 @@ import time
 import random
 import math
 from util import State, Feature
+import numpy as np
 
 CONTROLS = False
 
@@ -121,8 +122,8 @@ class Snake:
             if self.x == self.foodx and self.y == self.foody:
                 self.snake_length +=1
                 self.foodx = round(random.randrange(0, self.width-self.size) / self.size) * self.size
-                self.foody = round(random.randrange(0, self.width-self.size) / self.size) * self.size
-            clock.tick(600)
+                self.foody = round(random.randrange(0, self.width-self.size) / self.size)
+                clock.tick(600)
 
         return self.snake_length - 1
 
@@ -146,13 +147,78 @@ def featureExtractor(self, state: State, action):
     #maybe how close the head is to the body?
 
     #distance to fruit, action
-    features.append(Feature(featureKey=('bottomWall', abs(temp_y-self.foody) + abs(temp_x-self.foodx), action), featureValue=1))
+    features.append(Feature(featureKey=('fruit', abs(temp_y-self.foody) + abs(temp_x-self.foodx), action), featureValue=1))
 
     return features
 
+class QLearningAlgorithm:
+    def __init__(self, actions, discount, learning_rate, epsilon):
+        self.actions = actions
+        self.discount = discount
+        self.learning_rate = learning_rate
+        self.epsilon = epsilon
+        self.q_values = {}
+        self.weights = {}
+
+    def getAction(self, state, trial):
+        if random.random() < self.epsilon:
+            return random.choice(self.actions)
+        else:
+            q_values = [self.getQValue(state, action) for action in self.actions]
+            return self.actions[np.argmax(q_values)]
+
+    def getQValue(self, state, action):
+        features = state.snake.featureExtractor(state, action)
+        q_value = 0
+        for feature in features:
+            q_value += self.weights.get(feature.featureKey, 0) * feature.featureValue
+        return q_value
+
+    def incorporateFeedback(self, state, action, reward, new_state):
+        features = state.snake.featureExtractor(state, action)
+        q_value = self.getQValue(state, action)
+        new_q_values = [self.getQValue(new_state, new_action) for new_action in self.actions]
+        new_q_value = max(new_q_values)
+        for feature in features:
+            self.weights[feature.featureKey] = self.weights.get(feature.featureKey, 0) + self.learning_rate * (reward + self.discount * new_q_value - q_value) * feature.featureValue
+
 def learn(dis, height, width):
     snake = Snake(dis, height, width)
-    score = snake.play()
+    actions = ["up","down","left","right"]
+    discount = 0.9  # discount factor
+    learning_rate = 0.1
+    epsilon = 0.1
+    qlearn = QLearningAlgorithm(actions, discount, learning_rate, epsilon)
+    score = 0
+    for _ in range(1000):
+        state = State(0, 0, 0, snake.x, snake.y, snake.snake_list)
+        totalDiscount = 1  # future
+        trial_reward = 0
+        skip = False
+        for _ in range(1000):
+            action = qlearn.getAction(state, _+1)
+            new_state, reward = snake.choices()
+            new_state.snake = snake
+            if reward < -1000:
+                qlearn.incorporateFeedback(state, action, reward, new_state)
+                break
+            qlearn.incorporateFeedback(state, action, reward, new_state)
+            trial_reward += totalDiscount * reward
+            totalDiscount *= discount
+            state = new_state
+            snake.x += state.delta_x
+            snake.y += state.delta_y
+            snake.snake_list.append([snake.x, snake.y])
+            if len(snake.snake_list) > snake.snake_length:
+                del snake.snake_list[0]
+            if snake.collide([snake.x, snake.y]):
+                break
+            snake.dis.fill("black")
+            for x,y in snake.snake_list:
+                pygame.draw.rect(snake.dis, (0,0,255), [x,y,snake.size,snake.size])
+            pygame.draw.rect(snake.dis, (255,0,0), [snake.foodx,snake.foody,snake.size,snake.size])
+            pygame.display.update()
+        score += trial_reward
     return score
 
 def start_display():

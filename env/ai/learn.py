@@ -3,9 +3,6 @@ from util import QLearningAlgorithm, featureExtractor, State
 import pygame
 import argparse
 
-
-
-
 def simulate(display, height, width, debug_mode, numTrials=300, maxIterations=10000):
     actions = ["up","down","left","right"]
     discount = 1 # what is this
@@ -23,7 +20,6 @@ def simulate(display, height, width, debug_mode, numTrials=300, maxIterations=10
         skip = False
         for _ in range(maxIterations):
             action, debug_list, debug_bits = qlearn.getAction(state, debug_mode, trial+1)
-
 
             if debug_mode and debug_bits:
                 debug_bit_list = ['foodLeft','foodRight','foodDown','foodUp','dangerUp','dangerDown','dangerLeft','dangerRight']
@@ -59,7 +55,6 @@ def simulate(display, height, width, debug_mode, numTrials=300, maxIterations=10
                                 snake.debug_mode = False
                                 out = True
                             
-
             new_state, reward = snake.choices(state, action)
             if reward < -10:
                 qlearn.incorporateFeedback(state, action, reward, new_state)
@@ -86,9 +81,6 @@ def simulate(display, height, width, debug_mode, numTrials=300, maxIterations=10
         total_rewards.append(trial_reward)
     
     return total_rewards
-            
-
-
 
 def learn():
     parser = argparse.ArgumentParser(description='Run program in debug mode')
