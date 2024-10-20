@@ -6,21 +6,19 @@ import torch.optim as optim
 import random
 import matplotlib.pyplot as plt
 import matplotlib
-import threading
-import csv
-import random
-
-# Set up Matplotlib for plotting
-matplotlib.use('TkAgg')
+matplotlib.use('TkAgg')  
 
 # Constants
 WIDTH, HEIGHT = 600, 600
 BLOCK_SIZE = 20
 REWARD_EAT_FOOD = 10
 REWARD_ELSE = -0.1
+REWARD_NEAR_FOOD = 1
+REWARD_FAR_FOOD = -1
 REWARD_DIE = -10
 LEARNING_RATE = 0.001
-DISCOUNT_FACTOR = 0.9  # Discount factor for future rewards
+DISCOUNT_FACTOR = 0.9
+EXPLORATION_RATE = 0.1
 ACTIONS = ['up', 'down', 'left', 'right']
 
 # Colors
@@ -73,6 +71,7 @@ class SnakeGame:
 
         self.snake.append(new_head)
 
+        # Check if the snake eats food
         if self.snake[-1] == self.food:
             reward = REWARD_EAT_FOOD
             self.score += 1
@@ -80,8 +79,9 @@ class SnakeGame:
         else:
             self.snake.pop(0)
 
-        if (self.snake[-1][0] < 0 or self.snake[-1][0] > WIDTH - BLOCK_SIZE or
-            self.snake[-1][1] < 0 or self.snake[-1][1] > HEIGHT - BLOCK_SIZE or
+        # Check for game over conditions
+        if (self.snake[-1][0] < 0 or self.snake[-1][0] >= WIDTH or
+            self.snake[-1][1] < 0 or self.snake[-1][1] >= HEIGHT or
             self.snake[-1] in self.snake[:-1]):
             reward = REWARD_DIE
             return None, reward
@@ -91,6 +91,7 @@ class SnakeGame:
     def get_state(self):
         state = [0] * 11
         head = self.snake[-1]
+
         for i in range(1, 11):
             if head[0] - i * BLOCK_SIZE >= 0 and (head[0] - i * BLOCK_SIZE, head[1]) in self.snake:
                 state[0] = 1
@@ -101,10 +102,11 @@ class SnakeGame:
             elif head[1] - i * BLOCK_SIZE >= 0 and (head[0], head[1] - i * BLOCK_SIZE) in self.snake:
                 state[2] = 1
                 break
-            elif head [1] + i * BLOCK_SIZE < HEIGHT and (head[0], head[1] + i * BLOCK_SIZE) in self.snake :
+            elif head[1] + i * BLOCK_SIZE < HEIGHT and (head[0], head[1] + i * BLOCK_SIZE) in self.snake:
                 state[3] = 1
                 break
 
+        # Food positioning
         if self.food[0] < head[0]:
             state[4] = 1
         elif self.food[0] > head[0]:
@@ -114,6 +116,7 @@ class SnakeGame:
         elif self.food[1] > head[1]:
             state[7] = 1
 
+        # Direction of movement
         if self.direction == 'up':
             state[8] = 1
         elif self.direction == 'down':
@@ -122,6 +125,7 @@ class SnakeGame:
             state[10] = 1
 
         return state
+
 class Agent:
     def __init__(self):
         self.model = nn.Sequential(
@@ -137,17 +141,14 @@ class Agent:
         _, action = torch.max(action_values, 0)
         return ACTIONS[action.item()]
 
-    def learn(self, state, action, reward, next_state, done):
+    def learn(self, state, action, reward, next_state):
         state = torch.tensor(state, dtype=torch.float)
+        next_state = torch.tensor(next_state, dtype=torch.float)
         action_index = ACTIONS.index(action)  # Ensure action is valid
         action_values = self.model(state)
+        next_action_values = self.model(next_state)
         target = action_values.clone()
-        if done:
-            target[action_index] = reward
-        else:
-            next_state_tensor = torch.tensor(next_state, dtype=torch.float)
-            next_action_values = self.model(next_state_tensor)
-            target[action_index] = reward + DISCOUNT_FACTOR * torch.max(next_action_values).item()  # Update with future rewards
+        target[action_index] = reward + DISCOUNT_FACTOR * torch.max(next_action_values)
         self.optimizer.zero_grad()
         loss = nn.MSELoss()(action_values, target)
         loss.backward()
@@ -159,16 +160,6 @@ def draw_game(snake_game):
         pygame.draw.rect(wn, GREEN, (pos[0], pos[1], BLOCK_SIZE, BLOCK_SIZE))
     pygame.draw.rect(wn, RED, (snake_game.food[0], snake_game.food[1], BLOCK_SIZE, BLOCK_SIZE))
     pygame.display.update()
-
-def plot_scores_and_rewards(scores, rewards):
-    plt.ion()  # Interactive mode
-    fig, ax = plt.subplots()
-    ax.plot(scores, label='Score')
-    ax.plot(rewards, label='Reward')
-    ax.legend()
-    plt.show(block=False)  # Show the plot without blocking
-
-# ... [Rest of your existing test.py code] ...
 
 def main():
     try:
@@ -190,13 +181,13 @@ def main():
                 state = snake_game.get_state()
                 action = agent.get_action(state)
                 next_state, reward = snake_game.step(action)
-                
-                if next_state is None:
+
+                if next_state is None:  # Game over condition
                     break
                     
-                agent.learn(state, action, reward, next_state, False)
+                agent.learn(state, action, reward, next_state)
                 draw_game(snake_game)
-                pygame.time.delay(100)  # Adjust the delay as needed
+                pygame.time.delay(100)
                 total_reward += reward
 
             # Record scores and rewards
@@ -204,17 +195,17 @@ def main():
             rewards.append(total_reward)
             print(f"Game {game_number + 1}: Score = {snake_game.score}, Total Reward = {total_reward}")
 
-        # Save scores and rewards to a CSV file
-        with open('game_data.csv', mode='w', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(['Game Number', 'Score', 'Total Reward'])
-            for i in range(num_games):
-                writer.writerow([i + 1, scores[i], rewards[i]])
+        # Quit Pygame before plotting
+        pygame.quit()
 
-        print("Scores and rewards saved to game_data.csv")
+        # Plotting after all games are finished
+        plt.plot(range(1, num_games + 1), scores, label='Score')
+        plt.plot(range(1, num_games + 1), rewards, label='Reward')
+        plt.xlabel('Number of Games')
+        plt.ylabel('Score/Reward')
+        plt.title('Score and Reward Over Time')
+        plt.legend()
+        plt.show()
 
     except Exception as e:
         print("Error running game:", e)
-
-if __name__ == "__main__":
-    main()
