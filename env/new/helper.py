@@ -1,19 +1,27 @@
 import matplotlib.pyplot as plt
-from IPython import display
 
-plt.ion()
+def plot(scores, mean_scores, rewards):
+    plt.figure(figsize=(12, 6))
 
-def plot(scores, rewards):
-    display.clear_output(wait=True)
-    display.display(plt.gcf())
-    plt.clf()
-    plt.title('Training...')
-    plt.xlabel('Number of Games')
-    plt.ylabel('Score and Reward')
-    plt.plot(scores)
-    plt.plot(rewards)
-    plt.ylim(ymin=-15)
-    plt.text(len(scores)-1, scores[-1], str(scores[-1]))
-    plt.text(len(rewards)-1, rewards[-1], str(rewards[-1]))
-    plt.show(block=False)
-    plt.pause(.1)
+    # Create subplots
+    plt.subplot(3, 1, 1)
+    plt.plot(scores, label='Score', color='blue')
+    plt.ylabel('Score')
+    plt.title('Score over Games')
+    plt.legend()
+
+    plt.subplot(3, 1, 2)
+    plt.plot(mean_scores, label='Mean Score', color='orange')
+    plt.ylabel('Mean Score')
+    plt.title('Mean Score over Games')
+    plt.legend()
+
+    plt.subplot(3, 1, 3)
+    plt.plot(rewards, label='Rewards', color='green')
+    plt.ylabel('Rewards')
+    plt.title('Rewards over Games')
+    plt.xlabel('Games')
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()

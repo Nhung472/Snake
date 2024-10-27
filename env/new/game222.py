@@ -74,12 +74,12 @@ class SnakeGameAI:
         game_over = False
         if self.is_collision() or self.frame_iteration > 100 * len(self.snake):
             game_over = True
-            reward = -10
+            reward = -10  # Penalty for dying
             print(f"Game Over! Reward: {reward}, Score: {self.score}")
             return reward, game_over, self.score
 
         # 4. Calculate distance to food for reward/penalty
-        distance_to_food = self._calculate_distance(self.head, self.food)
+        distance_to_food = np.sqrt((self.head.x - self.food.x) ** 2 + (self.head.y - self.food.y) ** 2)
 
         # 5. place new food or just move
         if self.head == self.food:
@@ -91,7 +91,7 @@ class SnakeGameAI:
             self.snake.pop()
 
         # Check if the snake is getting closer or further from the food
-        new_distance_to_food = self._calculate_distance(self.head, self.food)
+        new_distance_to_food = np.sqrt((self.head.x - self.food.x) ** 2 + (self.head.y - self.food.y) ** 2)
         if new_distance_to_food < distance_to_food:
             reward += 1  # Reward for getting closer to food
         elif new_distance_to_food > distance_to_food:
@@ -116,10 +116,6 @@ class SnakeGameAI:
             return True
 
         return False
-
-    def _calculate_distance(self, point1, point2):
-        """Calculate the Manhattan distance between two points."""
-        return abs(point1.x - point2.x) + abs(point1.y - point2.y)
 
     def _update_ui(self):
         self.display.fill(BLACK)
